@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import xml.etree.ElementTree as ElementTree
 from datetime import datetime
 from pathlib import Path
@@ -18,6 +19,68 @@ def check() -> int:
 		except ValueError as e2:
 			print("Invalid battery number.")
 			print(f"Error {e2}")
+			
+
+def getVoltageFromCba(
+		output_path: str,
+		title: str = "Test",
+) -> list[float]:
+	WMRCBA = "C:\\Program Files (x86)\\West Mountain Radio\\CBA Software V3\\WMRCBA.exe"
+	if not Path(WMRCBA).is_file():
+		print("ERROR! CBA Software may not be installed!")
+		exit(1)
+	
+	cmd = [
+		WMRCBA,
+		"/test",
+		"multiple",
+		"1,1,0",
+		"/cutoff",
+		"10.5",
+		"/open",
+		output_path,
+		"/title",
+		title,
+	]
+	
+	result = run(cmd)
+	
+	match result.returncode:
+		case 0:
+			pass
+		case _:
+			print(f"Test failed! Error code {result}")
+	
+	with open(output_path, "r", encoding='utf-8-sig') as f:
+		data = ElementTree.fromstring(f.read())
+		f.close()
+	
+	test = data.find(f'.//Test[@Name="{title}"]')
+	if test is None:
+		print("Test failed! Variable test was not defined in the file.")
+		exit(1)
+	
+	samples = test.find('Samples')
+	if samples is None:
+		print("Test failed! Variable samples was not defined in the file.")
+		exit(1)
+	
+	voltage = 0.0
+	for i in samples:
+		voltage += float(i.get("V"))
+	
+	voltage = round(voltage / len(samples), 1)
+	
+	if voltage <= 0 or voltage > 14:
+		print("ERROR! Invalid voltage supplied!")
+		exit(1)
+	
+	try:
+		return [result.returncode, float(voltage)]
+	except ValueError as e:
+		print("ERROR! Could not convert voltage to float!")
+		print(f"Error {e}")
+		exit(1)
 
 
 def runMultipleDischargeTest(
@@ -43,76 +106,27 @@ def runMultipleDischargeTest(
 		"/test",
 		"multiple",
 		multiple_arg,
+#		"/battery",
+#		batteryData,
 		"/cutoff",
 		str(cutoff_v),
 		"/open",
 		output_path,
 		"/title",
 		title,
-		"/battery",
-		batteryData
+		"/temperature",
+		"125"
 	]
+	
+	print(n)
+	print(point_str)
+	print(multiple_arg)
+	print(batteryData)
+	print(cmd)
 	
 	result = run(cmd)
 	
 	return result.returncode
-
-
-def getVoltageFromCba(
-		output_path: str,
-		title: str = "Test",
-) -> list[float]:
-	WMRCBA = "C:\\Program Files (x86)\\West Mountain Radio\\CBA Software V3\\WMRCBA.exe"
-	if not Path(WMRCBA).is_file():
-		print("ERROR! CBA Software may not be installed!")
-		exit(1)
-	
-	cmd = [
-		WMRCBA,
-		"/test",
-		"multiple",
-		"0,2",
-		"/cutoff",
-		"10.5",
-		"/open",
-		output_path,
-		"/title",
-		title,
-	]
-	
-	result = run(cmd)
-	
-	match result:
-		case 0:
-			pass
-		case _:
-			print(f"Test failed! Error code {result}")
-	
-	with open(output_path, "r", encoding='utf-8-sig') as f:
-		data = ElementTree.fromstring(f.read())
-		f.close()
-	
-	test = data.find('.//Test[@Name="Test_1"]')
-	if not test:
-		print("Test failed! Variable test was not defined in the file.")
-		exit(1)
-	
-	samples = test.find('Samples')
-	if not samples:
-		print("Test failed! Variable samples was not defined in the file.")
-		exit(1)
-	
-	voltage = samples.get("V")
-	if not voltage:
-		print("ERROR! Could not get voltage from CBA!")
-		exit(1)
-	
-	try:
-		return [result.returncode, float(voltage)]
-	except ValueError as e:
-		print("ERROR! Could not convert voltage to float!")
-		print(f"Error {e}")
-		exit(1)
 
 
 def main():
@@ -128,35 +142,42 @@ def main():
 	batteryNum = check()
 	currentTime = datetime.now()
 	date = datetime.date(currentTime)
-	initialVoltageFileName = f"VoltageCheck-B{batteryNum}_{date.year}-{date.month}-{date.day}_{currentTime.hour}-{currentTime.minute}-{currentTime.second}"
+	initialVoltageFileName = f"voltagecheck-b{batteryNum}_{date.year}-{date.month}-{date.day}_{currentTime.hour}-{currentTime.minute}-{currentTime.second}"
+	initialVoltageTestPath = f"{initialVoltageFileName}.bt2"
 	initialVoltageExportPath = f"./results/{initialVoltageFileName}.bt2"
-	fullTestFileName = f"BatteryCheck-B{batteryNum}_{date.year}-{date.month}-{date.day}_{currentTime.hour}-{currentTime.minute}-{currentTime.second}"
+	fullTestFileName = f"batterycheck-b{batteryNum}_{date.year}-{date.month}-{date.day}_{currentTime.hour}-{currentTime.minute}-{currentTime.second}"
+	fullTestTestPath = f"{fullTestFileName}.bt2"
 	fullTestExportPath = f"./results/{fullTestFileName}.bt2"
 	
-	voltageData = getVoltageFromCba(initialVoltageExportPath, initialVoltageFileName)
+	voltageData = getVoltageFromCba(initialVoltageTestPath, initialVoltageFileName)
+	if os.path.isfile(initialVoltageTestPath):
+		shutil.move(initialVoltageTestPath, initialVoltageExportPath)
 	if voltageData[0] != 0:
 		print(f"Voltage check failed! Error code {voltageData[0]}")
 		exit(1)
 	
-	code = runMultipleDischargeTest([(5, 0), (5, 1)], 11.5, fullTestExportPath, voltageData[1], fullTestFileName)
+	code = runMultipleDischargeTest([(5, 0), (5, 1)], 11.5, fullTestTestPath, voltageData[1], fullTestFileName)
+	
+	if os.path.isfile(fullTestTestPath):
+		shutil.move(fullTestTestPath, fullTestExportPath)
 	
 	match code:
 		case 0:
 			print("Test successful. Beginning data parsing...")
 		case _:
 			print(f"Test failed! Error code {code}")
+			exit(1)
 	
 	with open(fullTestExportPath, "r", encoding='utf-8-sig') as f:
 		data = ElementTree.fromstring(f.read())
 		f.close()
 		
-	test = data.find('.//Test[@Name="Test_1"]')
+	test = data.find(f'.//Test[@Name="{fullTestFileName}"]')
 	if not test:
 		print("Test failed! Variable test was not defined in the file.")
 		exit(1)
 	
-	test.find('.//TestType')
-	parsedData = []
+	parsedData = {}
 	samples = test.find('Samples')
 	if not samples:
 		print("Test failed! Variable samples was not defined in the file.")
@@ -164,14 +185,14 @@ def main():
 	
 	parsedData.append({
 		"date": {
-			date.year,
-			date.month,
-			date.day
+			"year": date.year,
+			"month": date.month,
+			"day": date.day
 		},
 		"time": {
-			currentTime.hour,
-			currentTime.minute,
-			currentTime.second
+			"hour": currentTime.hour,
+			"time": currentTime.minute,
+			"second": currentTime.second
 		},
 		"batteryNumber": batteryNum,
 	})
@@ -189,11 +210,12 @@ def main():
 			"current": float(sampleCurrent),
 		})
 	
-	# will go at the end for finalizing data
-	dataToServer = json.dumps(parsedData)
+	# will go at the end for finalizing data, indent is purely for human readability in testing
+	dataToServer = json.dumps(parsedData, indent=4)
 	
 	# requests.post(os.environ.get('DATABASE_URL'), json=dataToServer)
 	
+	# TODO: calculate internal resistance and subtract 0.04 ohms to account for CBA offset, then add to dataToServer before sending to server
 	# only here right now to ensure exported data is good
 	with open('./results/results.json', 'w', encoding='utf-8') as f:
 		f.write(dataToServer)
