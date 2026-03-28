@@ -1,0 +1,28 @@
+[project]
+name = "cbav-data-retrieval"
+version = "1.0.0a"
+description = "An app made by the Patribots meant to interact with the CBA Software to gather data from a CBA device and send it to a database."
+requires-python = ">=3.12"
+readme = "README.md"
+license = "CC-BY-4.0"
+authors = [
+    { name = "fsk", email = "surfluke19@gmail.com" },
+    { name = "Patribots", email = "patribots4738@gmail.com" }
+]
+maintainers = [
+    { name = "fsk", email = "surfluke19@gmail.com" }
+]
+dependencies = [
+    "python-dotenv>=1.2.2",
+    "requests>=2.33.0",
+]
+
+[project.urls]
+HomePage = "https://github.com/Patribots4738/CBAV-Data-Retrieval"
+
+[dependency-groups]
+dev = [
+    "pyinstaller>=6.19.0",
+    "ruff>=0.15.8",
+    "ty>=0.0.26",
+]
