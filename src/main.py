@@ -7,8 +7,6 @@ from subprocess import run
 
 from dotenv import load_dotenv
 
-from lib import wmr_cba
-
 load_dotenv(dotenv_path='./src/.env')
 env = os.environ
 
@@ -60,18 +58,61 @@ def runMultipleDischargeTest(
 	return result.returncode
 
 
-def getVoltageFromCba():
-	CBA = wmr_cba.cba4()
-	devices = CBA.scan()
-	if not devices:
-		print("ERROR! No CBA devices found!")
+def getVoltageFromCba(
+		output_path: str,
+		title: str = "Test",
+) -> list[float]:
+	WMRCBA = "C:\\Program Files (x86)\\West Mountain Radio\\CBA Software V3\\WMRCBA.exe"
+	if not Path(WMRCBA).is_file():
+		print("ERROR! CBA Software may not be installed!")
 		exit(1)
-	if CBA.is_valid():
-		voltage = CBA.get_voltage()
-	else:
-		print("ERROR! CBA device is not valid!")
+	
+	cmd = [
+		WMRCBA,
+		"/test",
+		"multiple",
+		"0,2",
+		"/cutoff",
+		"10.5",
+		"/open",
+		output_path,
+		"/title",
+		title,
+	]
+	
+	result = run(cmd)
+	
+	match result:
+		case 0:
+			pass
+		case _:
+			print(f"Test failed! Error code {result}")
+	
+	with open(output_path, "r", encoding='utf-8-sig') as f:
+		data = ElementTree.fromstring(f.read())
+		f.close()
+	
+	test = data.find('.//Test[@Name="Test_1"]')
+	if not test:
+		print("Test failed! Variable test was not defined in the file.")
 		exit(1)
-	return voltage
+	
+	samples = test.find('Samples')
+	if not samples:
+		print("Test failed! Variable samples was not defined in the file.")
+		exit(1)
+	
+	voltage = samples.get("V")
+	if not voltage:
+		print("ERROR! Could not get voltage from CBA!")
+		exit(1)
+	
+	try:
+		return [result.returncode, float(voltage)]
+	except ValueError as e:
+		print("ERROR! Could not convert voltage to float!")
+		print(f"Error {e}")
+		exit(1)
 
 
 def main():
@@ -87,10 +128,17 @@ def main():
 	batteryNum = check()
 	currentTime = datetime.now()
 	date = datetime.date(currentTime)
+	initialVoltageFileName = f"VoltageCheck-B{batteryNum}_{date.year}-{date.month}-{date.day}_{currentTime.hour}-{currentTime.minute}-{currentTime.second}"
+	initialVoltageExportPath = f"./results/{initialVoltageFileName}.bt2"
 	fullTestFileName = f"BatteryCheck-B{batteryNum}_{date.year}-{date.month}-{date.day}_{currentTime.hour}-{currentTime.minute}-{currentTime.second}"
 	fullTestExportPath = f"./results/{fullTestFileName}.bt2"
 	
-	code = runMultipleDischargeTest([(5, 0), (5, 1)], 11.5, fullTestExportPath, getVoltageFromCba(), fullTestFileName)
+	voltageData = getVoltageFromCba(initialVoltageExportPath, initialVoltageFileName)
+	if voltageData[0] != 0:
+		print(f"Voltage check failed! Error code {voltageData[0]}")
+		exit(1)
+	
+	code = runMultipleDischargeTest([(5, 0), (5, 1)], 11.5, fullTestExportPath, voltageData[1], fullTestFileName)
 	
 	match code:
 		case 0:
