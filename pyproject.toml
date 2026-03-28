@@ -15,7 +15,6 @@ maintainers = [
 dependencies = [
     "python-dotenv>=1.2.2",
     "requests>=2.33.0",
-    "wmr-cba>=1.2.0",
 ]
 
 [project.urls]

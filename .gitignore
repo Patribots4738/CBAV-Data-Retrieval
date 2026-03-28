@@ -267,3 +267,6 @@ results
 
 # Test files that i made so I don't forget
 *.test.py
+
+# Exclude the lib folder in src which contains the API required.
+!src/lib/
