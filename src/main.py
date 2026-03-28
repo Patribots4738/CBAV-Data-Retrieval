@@ -5,9 +5,9 @@ from datetime import datetime
 from pathlib import Path
 from subprocess import run
 
-import wmr_cba
 from dotenv import load_dotenv
-from wmr_cba import wmr_cba
+
+from lib import wmr_cba
 
 load_dotenv(dotenv_path='./src/.env')
 env = os.environ
@@ -61,7 +61,7 @@ def runMultipleDischargeTest(
 
 
 def getVoltageFromCba():
-	CBA = wmr_cba.CBA4()
+	CBA = wmr_cba.cba4()
 	devices = CBA.scan()
 	if not devices:
 		print("ERROR! No CBA devices found!")
