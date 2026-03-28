@@ -1,14 +1,16 @@
 import json
 import os
-import sys
 import xml.etree.ElementTree as ElementTree
 from datetime import datetime
 from pathlib import Path
 from subprocess import run
 
-import requests
+import wmr_cba
 from dotenv import load_dotenv
+from wmr_cba import wmr_cba
 
+load_dotenv(dotenv_path='./src/.env')
+env = os.environ
 
 def check() -> int:
 	while True:
@@ -24,6 +26,7 @@ def runMultipleDischargeTest(
 		points: list[tuple[int, float]],
 		cutoff_v: float,
 		output_path: str,
+		voltage: float,
 		title: str = "Test",
 ) -> int:
 	n = len(points)
@@ -34,6 +37,8 @@ def runMultipleDischargeTest(
 	if not Path(WMRCBA).is_file():
 		print("ERROR! CBA Software may not be installed!")
 		exit(1)
+	
+	batteryData = f'{env.get("BATTERY_AH")},{env.get("BATTERY_CELLS")},{env.get("BATTERY_CELLS")},{voltage},{env.get("BATTERY_WEIGHT")},"{env.get("BATTERY_TYPE")}"'
 	
 	cmd = [
 		WMRCBA,
@@ -46,6 +51,8 @@ def runMultipleDischargeTest(
 		output_path,
 		"/title",
 		title,
+		"/battery",
+		batteryData
 	]
 	
 	result = run(cmd)
@@ -53,25 +60,37 @@ def runMultipleDischargeTest(
 	return result.returncode
 
 
+def getVoltageFromCba():
+	CBA = wmr_cba.CBA4()
+	devices = CBA.scan()
+	if not devices:
+		print("ERROR! No CBA devices found!")
+		exit(1)
+	if CBA.is_valid():
+		voltage = CBA.get_voltage()
+	else:
+		print("ERROR! CBA device is not valid!")
+		exit(1)
+	return voltage
+
+
 def main():
-	
-	load_dotenv()
-	if os.environ.get("DATABASE_URL") is None:
+	if env.get("DATABASE_URL") is None:
 		print("DATABASE_URL environment variable not set.")
 		exit(1)
 	
 	try:
-		os.mkdir("results", mode=0o600)
+		os.mkdir("./results", mode=0o600)
 	except FileExistsError:
 		print("Directory already exists, skipping creation.")
 	
-	num = check()
+	batteryNum = check()
 	currentTime = datetime.now()
 	date = datetime.date(currentTime)
-	fullTestFileName = f"BatteryCheck-B{num}_{date.year}-{date.month}-{date.day}_{currentTime.hour}-{currentTime.minute}-{currentTime.second}"
+	fullTestFileName = f"BatteryCheck-B{batteryNum}_{date.year}-{date.month}-{date.day}_{currentTime.hour}-{currentTime.minute}-{currentTime.second}"
 	fullTestExportPath = f"./results/{fullTestFileName}.bt2"
 	
-	code = runMultipleDischargeTest([(5, 0), (5, 1)], 11.5, fullTestExportPath, fullTestFileName)
+	code = runMultipleDischargeTest([(5, 0), (5, 1)], 11.5, fullTestExportPath, getVoltageFromCba(), fullTestFileName)
 	
 	match code:
 		case 0:
@@ -94,6 +113,21 @@ def main():
 	if not samples:
 		print("Test failed! Variable samples was not defined in the file.")
 		exit(1)
+	
+	parsedData.append({
+		"date": {
+			date.year,
+			date.month,
+			date.day
+		},
+		"time": {
+			currentTime.hour,
+			currentTime.minute,
+			currentTime.second
+		},
+		"batteryNumber": batteryNum,
+	})
+	
 	for sample in samples:
 		sampleTime = sample.get("T")
 		sampleVoltage = sample.get("V")
@@ -107,13 +141,13 @@ def main():
 			"current": float(sampleCurrent),
 		})
 	
-	requests.post(os.environ.get('DATABASE_URL'), json=parsedData)
-	
 	# will go at the end for finalizing data
 	dataToServer = json.dumps(parsedData)
 	
-	# only here right not to ensure exported data is good
-	with open('results.json', 'w', encoding='utf-8') as f:
+	# requests.post(os.environ.get('DATABASE_URL'), json=dataToServer)
+	
+	# only here right now to ensure exported data is good
+	with open('./results/results.json', 'w', encoding='utf-8') as f:
 		f.write(dataToServer)
 
 

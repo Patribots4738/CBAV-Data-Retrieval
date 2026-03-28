@@ -1,6 +1,6 @@
 [project]
 name = "cbav-data-retrieval"
-version = "1.0.0a"
+version = "1.0.0a1"
 description = "An app made by the Patribots meant to interact with the CBA Software to gather data from a CBA device and send it to a database."
 requires-python = ">=3.12"
 readme = "README.md"
@@ -15,6 +15,7 @@ maintainers = [
 dependencies = [
     "python-dotenv>=1.2.2",
     "requests>=2.33.0",
+    "wmr-cba>=1.2.0",
 ]
 
 [project.urls]
@@ -22,7 +23,6 @@ HomePage = "https://github.com/Patribots4738/CBAV-Data-Retrieval"
 
 [dependency-groups]
 dev = [
-    "pyinstaller>=6.19.0",
     "ruff>=0.15.8",
     "ty>=0.0.26",
 ]
