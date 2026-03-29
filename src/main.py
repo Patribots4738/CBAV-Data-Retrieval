@@ -66,10 +66,16 @@ def getVoltageFromCba(
 		exit(1)
 	
 	voltage = 0.0
+	validSamples = 0
 	for i in samples:
-		voltage += float(i.get("V"))
+		sampleVoltage = i.get("V")
+		if sampleVoltage is None:
+			pass
+		else:
+			voltage += float(sampleVoltage)
+			validSamples += 1
 	
-	voltage = round(voltage / len(samples), 1)
+	voltage = round(voltage / validSamples, 1)
 	
 	if voltage <= 0 or voltage > 14:
 		print("ERROR! Invalid voltage supplied!")
@@ -87,7 +93,6 @@ def runMultipleDischargeTest(
 		points: list[tuple[int, float]],
 		cutoff_v: float,
 		output_path: str,
-		voltage: float,
 		title: str = "Test",
 ) -> int:
 	n = len(points)
@@ -99,15 +104,11 @@ def runMultipleDischargeTest(
 		print("ERROR! CBA Software may not be installed!")
 		exit(1)
 	
-	batteryData = f'{env.get("BATTERY_AH")},{env.get("BATTERY_CELLS")},{env.get("BATTERY_CELLS")},{voltage},{env.get("BATTERY_WEIGHT")},"{env.get("BATTERY_TYPE")}"'
-	
 	cmd = [
 		WMRCBA,
 		"/test",
 		"multiple",
 		multiple_arg,
-#		"/battery",
-#		batteryData,
 		"/cutoff",
 		str(cutoff_v),
 		"/open",
@@ -117,12 +118,6 @@ def runMultipleDischargeTest(
 		"/temperature",
 		"125"
 	]
-	
-	print(n)
-	print(point_str)
-	print(multiple_arg)
-	print(batteryData)
-	print(cmd)
 	
 	result = run(cmd)
 	
@@ -156,7 +151,7 @@ def main():
 		print(f"Voltage check failed! Error code {voltageData[0]}")
 		exit(1)
 	
-	code = runMultipleDischargeTest([(5, 0), (5, 1)], 11.5, fullTestTestPath, voltageData[1], fullTestFileName)
+	code = runMultipleDischargeTest([(5, 0), (5, 1)], 11.5, fullTestTestPath, fullTestFileName)
 	
 	if os.path.isfile(fullTestTestPath):
 		shutil.move(fullTestTestPath, fullTestExportPath)
@@ -183,7 +178,7 @@ def main():
 		print("Test failed! Variable samples was not defined in the file.")
 		exit(1)
 	
-	parsedData.append({
+	parsedData["header"] = {
 		"date": {
 			"year": date.year,
 			"month": date.month,
@@ -195,7 +190,8 @@ def main():
 			"second": currentTime.second
 		},
 		"batteryNumber": batteryNum,
-	})
+		"initialVoltage": voltageData[1],
+	}
 	
 	for sample in samples:
 		sampleTime = sample.get("T")
@@ -204,11 +200,11 @@ def main():
 		if not sampleTime or not sampleVoltage or not sampleCurrent:
 			print("Test failed! Variables from samples were not defined in the file.")
 			exit(1)
-		parsedData.append({
+		parsedData[sample] = {
 			"time": int(sampleTime),
 			"voltage": float(sampleVoltage),
 			"current": float(sampleCurrent),
-		})
+		}
 	
 	# will go at the end for finalizing data, indent is purely for human readability in testing
 	dataToServer = json.dumps(parsedData, indent=4)
