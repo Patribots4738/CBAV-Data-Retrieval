@@ -34,3 +34,6 @@ The script sends JSON data to the database URL via a POST request. The data stru
   }
 }
 ```
+
+For calculateInternalResistance() I kinda had GH Copilot do that for me
+since I kinda don't know how to do big data like that, sorry guys </3
