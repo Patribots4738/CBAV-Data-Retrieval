@@ -312,6 +312,7 @@ def main():
 		print("Test failed! Variable samples was not defined in the file.")
 		exit(1)
 	
+	parsedData["battery"] = batteryNum
 	parsedData["header"] = {
 		"date": {
 			"year": date.year,
@@ -323,9 +324,9 @@ def main():
 			"time": currentTime.minute,
 			"second": currentTime.second
 		},
-		"batteryNumber": batteryNum,
 		"initialVoltage": calculateBatteryCharge(voltageData[1]),
 	}
+	
 	parsedData["datapoints"] = {}
 	currentSample = 0
 	

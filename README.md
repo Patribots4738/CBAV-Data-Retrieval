@@ -20,18 +20,37 @@ This is so all important code is separated from regular repository stuff.
 ## What it sends
 
 The script sends JSON data to the database URL via a POST request. The data structure will look like the following:
+It is meant to work with our own [battery website](https://github.com/Patribots4738/BatteryWebsite), and the data is structured for that.
 
 ```json
 {
-  "battery": "Battery Type",
-  "timestamp": "2024-06-01T12:00:00Z",
-  "data": {
-    "voltage": 3.7,
-    "current": 1.5,
-    "temperature": 25.0,
-    "capacity": 2000,
-    "cycle_count": 100
-  }
+   "batteryNumber": 17,
+   "header": {
+      "date": {
+         "year": 1928,
+         "month": 4,
+         "day": 12
+      },
+      "time": {
+         "hour": 16,
+         "time": 3,
+         "second": 45
+      },
+      "initialVoltage": 13.192,
+      "internalResistance": 0.021
+  },
+   "datapoints": {
+        "0": {
+             "time": 0,
+             "voltage": 13.192,
+             "current": 0.0
+        },
+        "1": {
+             "time": 1,
+             "voltage": 13.183,
+             "current": 1.0
+        }
+   }
 }
 ```
 
