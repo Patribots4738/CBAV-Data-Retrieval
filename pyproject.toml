@@ -13,8 +13,9 @@ maintainers = [
     { name = "fsk", email = "surfluke19@gmail.com" }
 ]
 dependencies = [
+    "pick>=2.6.0",
     "python-dotenv>=1.2.2",
-    "requests>=2.33.0",
+    "requests>=2.33.1",
 ]
 
 [project.urls]
@@ -23,5 +24,5 @@ HomePage = "https://github.com/Patribots4738/CBAV-Data-Retrieval"
 [dependency-groups]
 dev = [
     "ruff>=0.15.8",
-    "ty>=0.0.26",
+    "ty>=0.0.27",
 ]

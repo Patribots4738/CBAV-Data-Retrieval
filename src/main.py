@@ -9,11 +9,12 @@ from typing import cast
 
 from requests import post
 from dotenv import load_dotenv
+from pick import pick
 
 load_dotenv(dotenv_path='./src/.env')
 env = os.environ
 
-def check() -> int:
+def askBatteryNumber() -> int:
 	while True:
 		userInput = input("Enter the battery number: ")
 		try:
@@ -22,6 +23,19 @@ def check() -> int:
 			print("Invalid battery number.")
 			print(f"Error {e2}")
 			
+
+def askTransferLocation() -> str:
+	title = "Where is this battery going?"
+	options = [
+		"Robot",
+		"Trickle Charger",
+		"Blast Charger",
+		"CBA",
+		"Other"
+	]
+	option, index = pick(options, title, indicator='==>', default_index=0)
+	return option
+
 
 def getVoltageFromCba(
 		output_path: str,
@@ -259,7 +273,8 @@ def calculateInternalResistance(
 
 
 def main():
-	if env.get("DATABASE_URL") is None:
+	databaseUrl = env.get("DATABASE_URL")
+	if databaseUrl is None:
 		print("DATABASE_URL environment variable not set.")
 		exit(1)
 	
@@ -268,7 +283,8 @@ def main():
 	except FileExistsError:
 		print("Directory already exists, skipping creation.")
 	
-	batteryNum = check()
+	batteryNum = askBatteryNumber()
+	goingTo = askTransferLocation()
 	currentTime = datetime.now()
 	date = datetime.date(currentTime)
 	initialVoltageFileName = f"voltagecheck-b{batteryNum}_{date.year}-{date.month}-{date.day}_{currentTime.hour}-{currentTime.minute}-{currentTime.second}"
@@ -324,7 +340,8 @@ def main():
 			"time": currentTime.minute,
 			"second": currentTime.second
 		},
-		"initialVoltage": calculateBatteryCharge(voltageData[1]),
+		"movingTo": goingTo,
+		"initialVoltage": calculateBatteryCharge(voltageData[1])
 	}
 	
 	parsedData["datapoints"] = {}
@@ -364,7 +381,7 @@ def main():
 	
 	jsonData = json.dumps(parsedData)
 	
-	post(os.environ.get('DATABASE_URL'), json=jsonData)
+	post(databaseUrl, json=jsonData)
 
 
 if __name__ == "__main__":

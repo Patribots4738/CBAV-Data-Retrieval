@@ -36,6 +36,7 @@ It is meant to work with our own [battery website](https://github.com/Patribots4
          "time": 3,
          "second": 45
       },
+      "movingTo": "Robot",
       "initialVoltage": 13.192,
       "internalResistance": 0.021
   },
