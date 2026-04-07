@@ -386,7 +386,7 @@ def main():
 	cbaOffset = float(cbaOffset)
 	
 	try:
-		internalResistanceCorrected = calculateInternalResistance(parsedData, cbaOffsetOhms=cbaOffset)
+		internalResistanceCorrected = calculateInternalResistance(parsedData["datapoints"], cbaOffsetOhms=cbaOffset)
 	except ValueError as e:
 		print("Test failed! Could not calculate internal resistance from parsed data.")
 		print(f"Error {e}")
