@@ -24,34 +24,35 @@ It is meant to work with our own [battery website](https://github.com/Patribots4
 
 ```json
 {
-   "batteryNumber": 17,
-   "header": {
-      "date": {
-         "year": 1928,
-         "month": 4,
-         "day": 12
-      },
-      "time": {
-         "hour": 16,
-         "time": 3,
-         "second": 45
-      },
-      "movingTo": "Robot",
-      "initialVoltage": 13.192,
-      "internalResistance": 0.021
+  "batteryNumber": 17,
+  "header": {
+    "date": {
+      "year": 1928,
+      "month": 4,
+      "day": 12
+    },
+    "time": {
+      "hour": 16,
+      "time": 3,
+      "second": 45
+    },
+    "movingTo": "Robot",
+    "comingFrom": "Blast Charger",
+    "initialVoltage": 13.192,
+    "internalResistance": 0.021
   },
-   "datapoints": {
-        "0": {
-             "time": 0,
-             "voltage": 13.192,
-             "current": 0.0
-        },
-        "1": {
-             "time": 1,
-             "voltage": 13.183,
-             "current": 1.0
-        }
-   }
+  "datapoints": {
+    "0": {
+      "time": 0,
+      "voltage": 13.192,
+      "current": 0.0
+    },
+    "1": {
+      "time": 1,
+      "voltage": 13.183,
+      "current": 1.0
+    }
+  }
 }
 ```
 

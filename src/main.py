@@ -24,6 +24,19 @@ def askBatteryNumber() -> int:
 			print(f"Error {e2}")
 			
 
+def askOriginLocation() -> str:
+	title = "Where is this battery coming from?"
+	options = [
+		"Robot",
+		"Trickle Charger",
+		"Blast Charger",
+		"CBA",
+		"Other"
+	]
+	option, index = pick(options, title, indicator='==>', default_index=0)
+	return option
+
+
 def askTransferLocation() -> str:
 	title = "Where is this battery going?"
 	options = [
@@ -285,6 +298,7 @@ def main():
 	
 	batteryNum = askBatteryNumber()
 	goingTo = askTransferLocation()
+	comingFrom = askOriginLocation()
 	currentTime = datetime.now()
 	date = datetime.date(currentTime)
 	initialVoltageFileName = f"voltagecheck-b{batteryNum}_{date.year}-{date.month}-{date.day}_{currentTime.hour}-{currentTime.minute}-{currentTime.second}"
@@ -341,6 +355,7 @@ def main():
 			"second": currentTime.second
 		},
 		"movingTo": goingTo,
+		"comingFrom": comingFrom,
 		"initialVoltage": calculateBatteryCharge(voltageData[1])
 	}
 	
