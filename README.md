@@ -33,7 +33,7 @@ It is meant to work with our own [battery website](https://github.com/Patribots4
     },
     "time": {
       "hour": 16,
-      "time": 3,
+      "minute": 3,
       "second": 45
     },
     "movingTo": "Robot",
